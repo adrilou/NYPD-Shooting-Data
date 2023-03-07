@@ -1,0 +1,73 @@
+---
+title: "NYPD Data"
+author: "Adrianna Queen"
+date: "2023-03-05"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(lubridate)
+```
+
+## Load in the Data
+
+```{r upload data and transform}
+filename = c("https://data.cityofnewyork.us/api/views/833y-fsy8/rows.csv?accessType=DOWNLOAD")
+data = read_csv(filename)
+data = data %>%
+  mutate(OCCUR_DATE = mdy(OCCUR_DATE)) %>%
+  select(-c(Latitude,Longitude,Lon_Lat,X_COORD_CD,Y_COORD_CD))
+```
+### Data Loading Discussion
+I removed the location data because I felt that using the Boro and Precinct information would be better suited for doing location type analysis on the data.
+
+There were some N/A's in the data, but I will address the missing data in the analysis and modeling section of this report as I see fit. I believe that in some instances it is important to keep the N/A's in order to have an accurate count of the number of incidents, while in other instances it would be good to filter out the N/A's so that I can get a deeper dive into demographic information. For these reasons, I will leave the N/A's in my data for now.
+
+## Summary of the Data
+
+```{r summary, echo=FALSE}
+summary(data)
+```
+Plots
+```{r Plots}
+data %>%
+  ggplot(aes(x=PRECINCT,y=sum(STATISTICAL_MURDER_FLAG),fill=PERP_SEX)) +
+  geom_bar(stat='identity')
+
+data %>%
+  ggplot(aes(x=PRECINCT,y=sum(STATISTICAL_MURDER_FLAG),fill=VIC_SEX)) +
+  geom_bar(stat='identity')
+
+data %>%
+  ggplot(aes(x=PRECINCT,y=sum(STATISTICAL_MURDER_FLAG),fill=VIC_AGE_GROUP)) +
+  geom_bar(stat='identity')
+```
+
+## Plots Discussion
+The plots show that both the victim and the perpetrator are more often than not male. Initially, I expected there to be more female victims, so I was surprised by that result. 
+
+I was also surprised by the victim age group result. It appears that most of the victims are between 18-44, with a steep decline for people 45+. I would have expected there to be a more gradual decline in age.
+
+## Analysis and Modeling
+```{r Analysis}
+data %>%
+  group_by(BORO) %>%
+  summarize(total_murders=sum(STATISTICAL_MURDER_FLAG)) %>%
+  filter(total_murders>10)
+
+data %>%
+  group_by(LOCATION_DESC,na.rm=TRUE) %>%
+  summarize(total_murders=sum(STATISTICAL_MURDER_FLAG)) %>%
+  filter(total_murders>10)
+```
+
+### Analysis and Modeling Discussion
+I think it makes sense that the Multi-Dwelling and PVT House had the highest rates since homes would be private settings where crimes are more likely to feel that they could get away with it. I found it interesting that grocery stores and night clubs were the next highest at first, but it does make sense that places people go frequently would have higher rates of crimes. 
+
+## Bias Discussion
+Over the past few years, there has been a much more widely discussed debate about the power that the criminal justice system in America should hold. Politically, New York has publicly attempted to soften its response to crime which has been met with very mixed reviews. Left leaning individuals may go into analyzing this data by trying to find ways to prove that the crime isn't that bad or that the crimes are justified due to a system that has failed the perpetrator. Right learning individuals, on the other hand, would likely go into this analysis trying to show how the softening on crime has led to higher rates crime and use that to make claims that liberal policies are creating dangerous living situations.
+
+It is important for the data scientist to remain as neutral as possible when doing analysis because even slight bias can negatively influence the results. One way they can do this is by getting inputs from people who fall on both sides of the political aisle, so that they can gain better context. Another way is to carefully word their hypotheses to be tested. If they word their hypotheses in a way that causes them to only look at certain parts of the data that would prove or disprove one thing, then they could miss important information that the data has to offer.
